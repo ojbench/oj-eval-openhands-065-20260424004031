@@ -58,6 +58,8 @@ public:
         if (currentBlock != nullptr && (currentOffset + requiredInts) <= blockSize * intsPerBlock) {
             int* result = currentBlock + currentOffset;
             currentOffset += requiredInts;
+            // Add to allocated blocks
+            allocatedBlocks[result] = std::make_pair(currentBlock, blocksNeeded);
             return result;
         }
         
@@ -65,7 +67,7 @@ public:
         for (auto it = freeList.begin(); it != freeList.end();) {
             int* block = it->first;
             int availableBlocks = it->second;
-            int availableInts = availableBlocks * (4096 / sizeof(int));
+            int availableInts = availableBlocks * intsPerBlock;
             
             // Check if this freed block can fit our allocation
             if (requiredInts <= availableInts) {
@@ -79,7 +81,7 @@ public:
                 } else {
                     // Partially used, update the remaining size
                     int remainingInts = availableInts - requiredInts;
-                    int remainingBlocks = (remainingInts + (4096 / sizeof(int)) - 1) / (4096 / sizeof(int));
+                    int remainingBlocks = (remainingInts + intsPerBlock - 1) / intsPerBlock;
                     it->second = remainingBlocks;
                     ++it;
                 }
