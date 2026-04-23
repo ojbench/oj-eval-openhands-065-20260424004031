@@ -96,6 +96,8 @@ public:
         blockSize = blocksNeeded;
         currentOffset = requiredInts;
         
+        int* result = currentBlock;  // Define the result pointer
+        
         // Add to allocated blocks
         allocatedBlocks[result] = std::make_pair(currentBlock, blocksNeeded);
         
