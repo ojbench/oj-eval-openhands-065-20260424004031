@@ -29,7 +29,8 @@ public:
     ~Allocator() {
         // Free all allocated blocks
         for (auto& blockInfo : allocatedBlocks) {
-            freeBlock(blockInfo.first, blockInfo.second);
+            // blockInfo.second is a pair: (original_block, block_size)
+            freeBlock(blockInfo.second.first, blockInfo.second.second);
         }
         allocatedBlocks.clear();
         
@@ -96,9 +97,9 @@ public:
         currentOffset = requiredInts;
         
         // Add to allocated blocks
-        allocatedBlocks[currentBlock] = std::make_pair(currentBlock, n);
+        allocatedBlocks[result] = std::make_pair(currentBlock, blocksNeeded);
         
-        return currentBlock;
+        return result;
     }
 
     /**
