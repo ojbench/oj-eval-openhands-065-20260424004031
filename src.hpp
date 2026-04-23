@@ -62,7 +62,7 @@ public:
         }
         
         // If we can't use the current block, look for a freed block that can fit
-        for (auto it = freeList.begin(); it != freeList.end(); ++it) {
+        for (auto it = freeList.begin(); it != freeList.end();) {
             int* block = it->first;
             int availableBlocks = it->second;
             int availableInts = availableBlocks * (4096 / sizeof(int));
@@ -75,17 +75,20 @@ public:
                 // Update the free list - reduce the size or remove if fully used
                 if (requiredInts == availableInts) {
                     // Fully used, remove from free list
-                    freeList.erase(it);
+                    it = freeList.erase(it);
                 } else {
                     // Partially used, update the remaining size
                     int remainingInts = availableInts - requiredInts;
                     int remainingBlocks = (remainingInts + (4096 / sizeof(int)) - 1) / (4096 / sizeof(int));
-                    freeList[block] = remainingBlocks;
+                    it->second = remainingBlocks;
+                    ++it;
                 }
                 
                 // Add to allocated blocks
                 allocatedBlocks[result] = std::make_pair(block, blocksNeeded);
                 return result;
+            } else {
+                ++it;
             }
         }
         
