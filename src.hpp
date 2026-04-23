@@ -64,25 +64,27 @@ public:
         // If we can't use the current block, look for a freed block that can fit
         for (auto it = freeList.begin(); it != freeList.end(); ++it) {
             int* block = it->first;
-            int blockInts = it->second * intsPerBlock;
-            int blockOffset = 0;
+            int availableBlocks = it->second;
+            int availableInts = availableBlocks * (4096 / sizeof(int));
             
             // Check if this freed block can fit our allocation
-            if (requiredInts <= blockInts) {
+            if (requiredInts <= availableInts) {
                 // Use this freed block
-                int* result = block + blockOffset;
+                int* result = block;
+                
                 // Update the free list - reduce the size or remove if fully used
-                if (requiredInts == blockInts) {
+                if (requiredInts == availableInts) {
                     // Fully used, remove from free list
                     freeList.erase(it);
                 } else {
                     // Partially used, update the remaining size
-                    int remainingBlocks = (blockInts - requiredInts + intsPerBlock - 1) / intsPerBlock;
+                    int remainingInts = availableInts - requiredInts;
+                    int remainingBlocks = (remainingInts + (4096 / sizeof(int)) - 1) / (4096 / sizeof(int));
                     freeList[block] = remainingBlocks;
                 }
                 
                 // Add to allocated blocks
-                allocatedBlocks[result] = std::make_pair(block, n);
+                allocatedBlocks[result] = std::make_pair(block, blocksNeeded);
                 return result;
             }
         }
@@ -124,12 +126,8 @@ public:
         // Remove from allocated blocks
         allocatedBlocks.erase(it);
         
-        // Add to free list
-        int intsPerBlock = 4096 / sizeof(int);
-        int blocksForN = (n + intsPerBlock - 1) / intsPerBlock; // Blocks needed for n integers
-        
         // If this deallocation is at the end of the current block, we can update currentOffset
-        if (block == currentBlock && pointer == (currentBlock + currentOffset - n)) {
+        if (block == currentBlock && pointer + n == currentBlock + currentOffset) {
             currentOffset -= n;
             // If the entire current block is now free, we can free it
             if (currentOffset == 0) {
@@ -141,6 +139,10 @@ public:
         }
         
         // Otherwise, add to free list
+        int intsPerBlock = 4096 / sizeof(int);
+        int blocksForN = (n + intsPerBlock - 1) / intsPerBlock; // Blocks needed for n integers
+        
+        // Add to free list - use the pointer as the key
         freeList[pointer] = blocksForN;
     }
 
